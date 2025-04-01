@@ -1,68 +1,117 @@
+import os
+import time
 class StudentManagementSystem:
     def __init__(self):
         self.__userfile = "user.txt"
         self.__gradefile = "grades.txt"
         self.__ecafile = "eca.txt"
-        self.__passwordfile = "password.txt"
+        self.__adminfile= "admim_password.txt"
+        self.__studentfile = "student_password.txt"
         self.username = None
         self.password = None
-    def ui(self):
-        print('_____________________________________________________\n')
-    
-    def login_ui(self):
-        print("________________________________________________________________")
+    def timer(self, seconds):
+        time.sleep(seconds)
 
-    def sign_in(self):
-        self.username = input('Username: ')
-        self.password = input('Password: ')
+    def clscr(self):
+        #os.system(what_to_run if else)
+        os.system('cls' if os.name =='nt' else 'clear')
+
+    def ui(self):
+        print(" =============================================================")
+        print('|                   Student Management System                 |')
+        print(" =============================================================")
+        print("|                                                             |")
+        print("|                   Press '1' for Admin login                 |")
+        print("|                                                             |")
+        print("|                  Press '2' for Student login                |")
+        print("|                                                             |")
+        print(" =============================================================")
+    
+    def login_ui(self, para):
+        self.clscr()
+        print(" =============================================================")
+        if para == 1:
+            print("|                    Admin Login page                         |")
+        else:
+            print("|                      Student Login Page                     |")
+        print(" =============================================================")
+        print("|                                                             |")
+        print("|                      Press '1' to Sign In                   |")
+        print("|                                                             |")
+        print("|                      Press '2' to Sign Up                   |")
+        print("|                                                             |")
+        print("|                      Press '0' to Go Back                   |")
+        print("|                                                             |")
+        print(" =============================================================")
+    
+    def goto_sign_up(self, passfile):
+        choice = input('Do you want to sign up First(Y/N): ')
+        if choice.lower() == 'y':
+            self.sign_up(passfile)
+        elif choice.lower() == 'n':
+            self.login()
+        else:
+            print("Invalid chioce!")
+
+    def sign_in(self, passfile):
+        attempt = 5
         while True:
+            self.username = input('Username: ')
+            self.password = input('Password: ')
             try:
-                with open(self.__passwordfile) as file:
-                    for line in file:
-                        username, password = line.strip().split()
+                with open(passfile, 'r') as file:
+                    content = file.read().strip()
+                    if not content:
+                        print('Empty Database!')
+                        self.goto_sign_up(passfile)
+
+                    for line in content.split("\n"):
+                        username, password = line.strip().split(":")
                         if self.username == username and self.password == password:
+                            print("✅ Login succesfull.")
+                            self.timer(2)
                             return 
                         else:
                             print('Incorrect username/password! Please try again.')
+                            attempt -= 1
+
+                        if attempt <= 0:
+                            print("\033[31mToo many failed attempts! Try again later\033[0m")
 
             except FileNotFoundError:
+                with open(passfile, 'x') as file:
+                    print('file not found\nfile created.')
+                self.sign_in(passfile) 
                 print('Database is empty!')
             except Exception as e:
                 print(f'Error {e}')
 
-    def user_un_exist(self):
-            with open(self.__passwordfile, 'r') as checkfile:
-                for line in checkfile:
-                    username, password = line.strip().split
-                     if username == self.username():
-                        return " username already exist"
-    def sign_up(self):
+    def check_username_exist(self, passfile):
+        with open(passfile, 'r') as checkfile:
+            for line in checkfile:
+                username, password = line.strip().split
+                if username == self.username():
+                    return True
+
+    def sign_up(self, passfile):
         while True:
             try:
                 self.username = input('Usename: ')
                 if len(self.username) < 3:
-                    raise Exception(" Username must be at least more than 2 character")
+                    raise ValueError (" Username must be at least more than 2 character")
                 
                 self.password = input('password: ')
                 if len(self.password) < 5:
-                    raise Exception (" pssword must be at least more than 4 character.")
+                    raise ValueError (" pssword must be at least more than 4 character.")
                 if not any(char.isalpha() for char in self.username) and not any(char.isdigit() for char in self.username):
-                    raise Exception (" Password must consist alphabet and numbers.")
-                break
-
-            except Exception as e:
-                print(f'Error! {e}')
-        while True:
-            try:
-                with open(self.__passwordfile, 'w') as file:
-                    self.check_un_exist()
-                    with open(self.__passwordfile, 'r') as checkfile:
-                        for line in checkfile:
-                            username, password = line.strip().split
-                            if username == self.username():
-                                raise Exception(" username already exist")
-                    
-
+                    raise ValueError (" Password must consist alphabet and numbers.")
+                
+                with open(passfile, 'w') as file:
+                    if self.check_username_exist(passfile):
+                        raise ValueError (" Username already exist.") 
+                    file.write(f"{self.username}:{self.password}")
+                    print("✅ Sign up succesfull.")
+                    break
 
             except FileNotFoundError:
                 print('Error! file not found.')
@@ -71,49 +120,47 @@ class StudentManagementSystem:
             except Exception as e:
                 print(f'Error! {e}')
 
-
-
-    def login(self):
-        self.login_ui()
+    def goback(self):
+        return False
+    
+    def login(self, para):
+        self.login_ui(para)
         while True:
             choice = input('Your choice: ')
             if choice == '1':
-                self.sign_in()
-            if choice == '2':
-                self.sign_up()
-            if choice == '0':
+                self.sign_in(self.__adminfile)
                 return
+            if choice == '2':
+                self.sign_up(self.__adminfile)
+                return
+            if choice == '0':
+                self.goback
 
-
-    def add_student(self):
-
-        try:
-            with open(self.__userfile, 'a') as file:
-                with open(self.__userfile, 'r') as checkfile:
-
-    def update_student(self):
-    def modify_student(self):
-    def delete_student(self):
-    def update_profile(self):
 
 class Admin:
     def __init__(self, instance):
         self.object = instance
     def admin_ui(self):
-        print("___________________________________________________________________________")
+        print(" =============================================================")
+        print("|                          Admin page                         |")
+        print(" =============================================================")
+        print("|                                                             |")
+        print("|                      Press '1' to                    |")
+        print("|                                                             |")
+        print("|                      Press '2' to Sign Up                   |")
+        print("|                                                             |")
+        print("|                      Press '0' to Go Back                   |")
+        print("|                                                             |")
+        print(" =============================================================")
+
     def mainpage(self):
         while True:
-            self.object.login()
+            self.object.login(1)
+            if self.object.goback:
+                self.mainpage()
+
             self.admin_ui()
             choice = input('Yout choice: ')
-            if choice == '1':
-                self.object.add_student()
-            if choice == '2':
-                self.object.update_student()
-            if choice == '3':
-                self.object.modify_student()
-            if choice == '4':
-                self.object.delete_student()
             if choice == '0':
                 return
 
@@ -121,7 +168,7 @@ class Student:
     def __init__(self, instance):
         self.object = instance
     def mainpage(self):
-        self.object.username 
+        pass
 
 studentmanagementsystem = StudentManagementSystem()
 while True:
