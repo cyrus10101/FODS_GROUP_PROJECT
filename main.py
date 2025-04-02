@@ -30,6 +30,12 @@ class StudentManagementSystem:
             except Exception as e:
                 print(f'Error {e}')
 
+    def user_un_exist(self):
+            with open(self.__passwordfile, 'r') as checkfile:
+                for line in checkfile:
+                    username, password = line.strip().split
+                     if username == self.username():
+                        return " username already exist"
     def sign_up(self):
         while True:
             try:
@@ -49,11 +55,14 @@ class StudentManagementSystem:
         while True:
             try:
                 with open(self.__passwordfile, 'w') as file:
+                    self.check_un_exist()
                     with open(self.__passwordfile, 'r') as checkfile:
                         for line in checkfile:
                             username, password = line.strip().split
                             if username == self.username():
                                 raise Exception(" username already exist")
+                    
+
 
             except FileNotFoundError:
                 print('Error! file not found.')
