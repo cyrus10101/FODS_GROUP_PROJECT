@@ -9,7 +9,9 @@ class StudentManagementSystem:
         self.studentfile = "student_password.txt"
         self.username = None
         self.password = None
+        self.verify = None
         self.goback = False
+        self.no_unique = False
 
     def timer(self, seconds):
         time.sleep(seconds)
@@ -38,7 +40,7 @@ class StudentManagementSystem:
         else:
             print("|                      Student Login Page                     |")
         print(" =============================================================")
-        print("|                                                             |")
+        print("|                                                             |")    
         print("|                      Press '1' to Sign In                   |")
         print("|                                                             |")
         print("|                      Press '2' to Sign Up                   |")
@@ -47,6 +49,16 @@ class StudentManagementSystem:
         print("|                                                             |")
         print(" =============================================================")
     
+    def keep_going(self):
+        while True:
+            choice = input("Do you want to continue(Y/N): ")
+            if choice.lower() == 'y':
+                return True
+            elif choice.lower() == 'n':
+                return False
+            else:
+                print('Invalid input.')
+
     def empty_content(self, passfile):
         with open(passfile, 'r') as file:
             content = file.read().strip()
@@ -55,21 +67,6 @@ class StudentManagementSystem:
             else:
                 return False
             
-    def goto_sign_up(self, passfile):
-        choice = input('Do you want to sign up First(Y/N): ')
-        if choice.lower() == 'y':
-            self.sign_up(passfile)
-        elif choice.lower() == 'n':
-            self.login()
-        else:
-            print("Invalid chioce!")
-
-    def attempt_fail(self, page):
-        if page == self.adminfile:
-            self.login(1)
-        else:
-            self.login(2)
-
     def sign_in(self, passfile):
         attempt = 5
         correct_userpass = False
@@ -79,7 +76,8 @@ class StudentManagementSystem:
             try:
                 if self.empty_content(passfile):        
                     print('Empty Database!')
-                    self.goto_sign_up(passfile)
+                    self.goback = True
+                    return
                 with open(passfile, 'r') as file:
                     for line in file:
                         username, password = line.strip().split(":")
@@ -96,7 +94,8 @@ class StudentManagementSystem:
                         if attempt <= 0:
                             print("\033[31mToo many failed attempts! Try again later\033[0m")
                             self.timer(2)
-                            self.attempt_fail(passfile)
+                            self.goback = True
+                            return
                             
             except FileNotFoundError:
                 with open(passfile, 'x') as file:
@@ -113,8 +112,16 @@ class StudentManagementSystem:
             for line in content.split("\n"):
                 username, password = line.strip().split(":")
                 if username == self.username:
+
                     return True
-                
+    def unique_verification(self):
+        with open(self.userfile, 'r') as file:
+            for line in file:
+                chk_verify, chk_name, chk_clss, chk_section = line.strip().split(":")
+                if int(chk_verify) == self.verify:
+                    return True
+            return False    
+            
 class Admin(StudentManagementSystem):
     def __init__(self):
         super().__init__()  # Call parent class's __init__
@@ -176,6 +183,45 @@ class Admin(StudentManagementSystem):
             if choice == '0':
                 self.goback = True
                 return
+            
+
+    def add_student(self):
+        while True:
+            try:
+                name = input('Student Name: ')
+                section = input('Section: ')
+                clss = int(input('Level :'))
+                roll = int(input('Id: '))
+                self.verify = roll
+                if not self.empty_content(self.userfile):
+                    if self.unique_verification():
+                        raise Exception (f"Id {self.verify} is already in use.")
+                with open(self.userfile, 'a') as file:
+                    file.write(f"{self.verify}:{name}:{clss}:{section}\n")
+                    print('✅ Successfully Added student.')
+                choice = input('Do you want to continue adding student(Y/N): ')
+                if choice.lower() == 'y':
+                    self.add_student()
+                elif choice.lower() == 'n':
+                    self.mainpage()
+                else:
+                    print('\033[31mInvalid input!\033[0m')
+
+            except FileNotFoundError:
+                print("\033[31mError! Unable to find file.")
+                choice = input('Do you want to create file(Y/N): ')
+                if choice.lower() == 'y':
+                    with open(self.userfile, 'w') as file:
+                        pass
+                elif choice.lower() == 'n': 
+                    self.mainpage()
+                else:
+                    print('\033[31mInvalid input!\033[0m')
+
+            except ValueError:
+                print('\033[31mError! only digits are allowed to enter in level and Id\033[0m')
+            except Exception as e:
+                print(f'\033[31mError! {e}\33[0m')
 
     def mainpage(self):
         while True:
@@ -183,15 +229,53 @@ class Admin(StudentManagementSystem):
             if self.goback:
                 return
             self.admin_ui()
-            choice = input('Yout choice: ')
+            choice = input('Your choice: ')
+            if choice == '1':
+                self.add_student()
             if choice == '0':
                 return
 
-class Student:
+class Student(StudentManagementSystem):
     def __init__(self, instance):
         self.object = instance
-    def mainpage(self):
+    def student_ui(self):
         pass
+
+    def student_sign_up(self, passfile):
+        try:
+            self.username = input('Username: ')
+            if len(self.username) < 3:
+                raise ValueError ("\033[31mError! Username must be at least more than 2 character\033[0m")
+            self.password = input('Password: ')
+            if len(self.password) < 5: 
+                raise ValueError ("\033[31mError! Password must be more than 4 character.\033[0m")
+            if not any(char.isalpha() for char in self.password) or not any(char.isdigit() for char in self.password):
+                raise ValueError ("\033[31mError! Password must consist alphabet and numbers.\033[0m")
+            self.verify = input('Verification Id: ')
+        except Exception as e:
+            print(f"{e}")
+
+    def student_login(self):
+        self.login_ui(2)
+        while True:
+            choice = input('Your choice: ')
+            if choice == '1':
+                self.sign_in(self.studentfile)
+                return
+            if choice == '2':
+                self.student_sign_up(self.studentfile)
+            if choice == '0':
+                self.goback = True
+
+    def mainpage(self):
+        while True:
+            self.student_login()
+            if self.goback:
+                return
+            self.student_ui()
+            choice = input('Your chioce: ')
+            if choice == '0':
+                return 
 
 studentmanagementsystem = StudentManagementSystem()
 while True:
