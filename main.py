@@ -1,8 +1,10 @@
 import os
 import time
+from cryptography.fernet import Fernet
 class StudentManagementSystem:
     def __init__(self):
         self.userfile = "user.txt"
+        self.personalfile = 'personal.txt'
         self.gradefile = "grades.txt"
         self.ecafile = "eca.txt"
         self.adminfile= "admin_password.txt"
@@ -50,6 +52,14 @@ class StudentManagementSystem:
         print("|                                                             |")
         print(" =============================================================")
     
+    def gender_selector_ui(self):
+        print('|----------------------------------------|')
+        print("|            Enter 1 for male            |")
+        print("|                                        |")
+        print("|            Enter 2 for female          |")
+        print("|                                        |")
+        print("|            Enter 3 for others          |")
+        print('|----------------------------------------|')
 
     def empty_content(self, passfile):
         with open(passfile, 'r') as file:
@@ -91,7 +101,7 @@ class StudentManagementSystem:
                 self.goback = True
                 return
             except Exception as e:
-                print(f'Error {e}')
+                print(f'\033[31mError {e}\033[0m')
 
     def check_username_exist(self, passfile):
         with open(passfile, 'r') as checkfile:
@@ -118,6 +128,25 @@ class StudentManagementSystem:
                     return True
         return False   
     
+    # Check if file exist or not if not creates file.
+    def check_file_exist(self, passfile):
+        try: 
+            with open(passfile, 'r') as file:
+                pass
+        except FileNotFoundError:
+            with open(passfile, 'w') as file:
+                pass
+
+    def gender_selector(self, choice):
+        if choice == '1':
+            return 'Male'
+        elif choice == '2':
+            return 'Female'
+        elif choice == '3':
+            return 'Others'
+        else:
+            raise Exception("\033[31mPlease Choose Valid Gender\033[0m")
+
 class Admin(StudentManagementSystem):
     def __init__(self):
         super().__init__()  # Call parent class's __init__
@@ -163,11 +192,11 @@ class Admin(StudentManagementSystem):
                     return
 
             except FileNotFoundError:
-                print('Error! file not found.')
+                print('\033[31mError! file not found.\033[0m')
             except PermissionError:
-                print('Error! Premission denied to wirte in this file')
+                print('\033[31mError! Premission denied to wirte in this file\033[0m')
             except Exception as e:
-                print(f'{e}')
+                print(f'\033[31m{e}\033[0m')
                 
     def admin_login(self):
         self.login_ui(1)
@@ -185,12 +214,7 @@ class Admin(StudentManagementSystem):
             
 
     def add_student(self):
-        try:
-            with open(self.userfile, 'r'), open(self.cfm_student, 'w'):
-                pass
-        except FileNotFoundError:
-            with open(self.userfile, 'w'), open(self.cfm_student, 'w'):
-                pass
+        self.check_file_exist(self.userfile)
         while True:
             try:
                 name = input('Student Name: ')
@@ -218,12 +242,101 @@ class Admin(StudentManagementSystem):
                 print('\033[31mError! only digits are allowed to enter in level and Id\033[0m')
             except Exception as e:
                 print(f'\033[31mError! {e}\33[0m')
+
     def update_personal(self):
-        pass
+        self.check_file_exist(self.personalfile)
+        while True:
+            try:
+                id = int(input('Student Id: '))
+                self.verfiy = id
+                if not self.id_exist():
+                    raise Exception("Id not found in Database.")
+                details = {'Name': None, 'Level': None, 'Section': None, 'Roll no': None, 'Gender': None, 'Phone No: ': None, 'Address': None}
+                for i in details.keys():
+                    if i == 'Gender':
+                        self.gender_selector_ui()
+                        choice = input('Your choice: ')
+                        detail = self.gender_selector(choice)
+                    else:
+                        detail = input(f'{i}: ')
+                    details[i] = detail
+                with open(self.personalfile, 'a') as file:
+                    file.write(f'{id}' + ':'.join(map(str, details.values())) + '\n')
+
+            except ValueError:
+                print('\033[31mError! You can only enter number.\033[0m')
+            except PermissionError:
+                print('\033[31mError! Permission denied to write in this file.\033[0m')
+            except Exception as e:
+                print(f'\033[31mError! {e}\033[0m')
+                
     def update_marks(self):
-        pass
+        self.check_file_exist(self.gradefile)
+        while True:
+            try: 
+                id = int(input("Student Id: "))
+                self.verfiy = id
+                if not self.id_exist():
+                    raise Exception("Id not found in Database.")
+                marks = []
+                for i in range(1, 6):
+                    mark = int(input(f'subject {i}: '))
+                    if not 0 <= mark <= 100: 
+                        raise Exception("Please enter valid Marks")
+                    marks.append(mark)
+                with open(self.gradefile, 'a') as file:
+                    file.write(f'{id}' + ':'.join(map(str, marks)) + '\n')
+
+                print('✅ Successfully Added student.')
+                choice = input('Do you want to continue adding(Y/N): ')
+                if choice.lower() == 'y':
+                    continue
+                elif choice.lower() == 'n':
+                    break
+                else:
+                    print('\033[31mInvalid Choice\033[0m')
+
+            except PermissionError:
+                print(f"\033[31mError! Permission denied to update marks\033[0m")
+            except ValueError:
+                print(f"\033[31mError! You can only enter numbers\033[0m")
+            except Exception as e:
+                print(f"\033[31mError! {e}\033[0m")
+
     def update_eca(self):
-        pass
+        self.check_file_exist(self.ecafile)
+        while True:
+            try: 
+                id = int(input("Student Id: "))
+                self.verfiy = id
+                if not self.id_exist():
+                    raise Exception("Id not found in database.")
+                sports = []
+                print('press 0 after completing adding ECA')
+                i = 1
+                while True:
+                    sport = input(f'Sport {i}')
+                    if sport == '0':
+                        break
+                    sports.append(sport)
+                    i +=1
+                with open(self.ecafile, 'a') as file:
+                    file.write(f'{id}:' + ':'.join(map(str, sports)) + '\n')
+                print('✅ Successfully Updated ECA record.')
+                choice = input('Do you want to continue updating ECA(Y/N): ')
+                if choice.lower() == 'y':
+                    continue
+                elif choice.lower() == 'n':
+                    self.update_marks()
+                else:
+                    print('\033[31mInvalid Choice\033[0m')
+                    
+            except PermissionError:
+                print(f"\033[31mError! Permission denied to update marks\033[0m")
+            except ValueError:
+                print(f"\033[31mError! You can only enter numbers\033[0m")
+            except Exception as e:
+                print(f"\033[31mError! {e}\033[0m")
     
     def update_record(self):
         self.choices_ui()
@@ -234,6 +347,8 @@ class Admin(StudentManagementSystem):
             self.update_marks()
         elif choice == '3':
             self.update_eca()
+        elif choice == '0':
+            self.goback = True
         else:
             print('\033[31mInvalid  Choice!\033[0m')
 
