@@ -1,6 +1,9 @@
 import os
 import time
 from cryptography.fernet import Fernet
+import pandas as pd
+from tabulate import tabulate
+
 class StudentManagementSystem:
     def __init__(self):
         self.userfile = "user.txt"
@@ -78,11 +81,22 @@ class StudentManagementSystem:
             try:
                 with open(passfile, 'r') as file:
                     for line in file:
-                        username, password = line.strip().split(":")
-                        if self.username.lower() == username and self.password == password:
-                            correct_userpass = True
+                        parts = line.strip().split(":")
+                        # For student password file (format: id:username:password)
+                        if passfile == self.studentfile and len(parts) == 3:
+                            student_id, username, password = parts
+                            if self.username.lower() == username.lower() and self.password == password:
+                                self.verify = student_id  # Store the student ID
+                                correct_userpass = True
+                                break
+                        # For admin password file (format: username:password)
+                        elif len(parts) == 2:
+                            username, password = parts
+                            if self.username.lower() == username.lower() and self.password == password:
+                                correct_userpass = True
+                                break
 
-                    if correct_userpass :
+                    if correct_userpass:
                         print("✅ Login succesfull.")
                         return                              
                     else:
@@ -105,13 +119,24 @@ class StudentManagementSystem:
 
     def check_username_exist(self, passfile):
         with open(passfile, 'r') as checkfile:
-            #checkfile.seek(0)
             content = checkfile.read().strip()
-            for line in content.split("\n"):
-                username, password = line.strip().split(":")
-                if username == self.username:
-                    return True
+            if not content:
+                return False
                 
+            for line in content.split("\n"):
+                parts = line.strip().split(":")
+                # For student password file (format: id:username:password)
+                if passfile == self.studentfile and len(parts) == 3:
+                    _, username, _ = parts
+                    if username.lower() == self.username.lower():
+                        return True
+                # For admin password file (format: username:password)
+                elif len(parts) == 2:
+                    username, _ = parts
+                    if username.lower() == self.username.lower():
+                        return True
+            return False
+
     def id_exist(self, passfile):
         with open(passfile, 'r') as file:
             lines = file.readlines()
@@ -565,16 +590,241 @@ class Admin(StudentManagementSystem):
 class Student(StudentManagementSystem):
     def __init__(self):
         super().__init__()
+        self.student_id = None  # Store student ID permanently
         
     def student_ui(self):
-        pass
+        self.clscr()
+        print(" =============================================================")
+        print("|                        Student page                         |")
+        print(" =============================================================")
+        print("|                                                             |")
+        print("|                      Enter '1' to Update Profile            |")
+        print("|                                                             |")
+        print("|                      Enter '2' to View Profile              |")
+        print("|                                                             |")
+        print("|                      Enter '3' to View Grades               |")
+        print("|                                                             |")
+        print("|                      Enter '4' to View ECA                  |")
+        print("|                                                             |")
+        print("|                      Enter '0' to Go Back                   |")
+        print("|                                                             |")
+        print(" =============================================================")
+
+    def update_profile(self):
+        try:
+            self.check_file_exist(self.personalfile)
+            print("\nUpdate Personal Information")
+            print("--------------------------")
+            
+            # Check if profile already exists
+            profile_exists = False
+            with open(self.personalfile, 'r') as file:
+                for line in file:
+                    parts = line.strip().split(":")
+                    if parts[0] == self.student_id:
+                        profile_exists = True
+                        break
+            
+            # Get personal details
+            details = {'Name': None, 'Level': None, 'Section': None, 'Roll no': None, 'Gender': None, 'Phone No': None, 'Address': None}
+            for i in details.keys():
+                if i == 'Gender':
+                    self.gender_selector_ui()
+                    choice = input('Your choice: ')
+                    detail = self.gender_selector(choice)
+                else:
+                    detail = input(f'{i}: ')
+                details[i] = detail
+            
+            # Write or update profile
+            if profile_exists:
+                # Update existing profile
+                with open(self.personalfile, 'r') as file:
+                    lines = file.readlines()
+                
+                with open(self.personalfile, 'w') as file:
+                    for line in lines:
+                        if line.split(':')[0] != self.student_id:
+                            file.write(line)
+                        else:
+                            file.write(f"{self.student_id}:" + ':'.join(map(str, details.values())) + '\n')
+                print("✅ Profile updated successfully.")
+            else:
+                # Create new profile
+                with open(self.personalfile, 'a') as file:
+                    file.write(f"{self.student_id}:" + ':'.join(map(str, details.values())) + '\n')
+                print("✅ Profile created successfully.")
+            
+            self.timer(2)
+            
+        except Exception as e:
+            print(f"\033[31mError! {e}\033[0m")
+            self.timer(2)
+
+    def view_profile(self):
+        try:
+            self.check_file_exist(self.personalfile)
+            profile_found = False
+            
+            # Get student name from user file
+            student_name = "Student"
+            with open(self.userfile, 'r') as file:
+                for line in file:
+                    parts = line.strip().split(":")
+                    if parts[0] == self.student_id:
+                        student_name = parts[1]
+                        break
+            
+            self.clscr()
+            print(f"\n{student_name}'s Profile")
+            print("=" * 50)
+            
+            with open(self.personalfile, 'r') as file:
+                for line in file:
+                    parts = line.strip().split(":")
+                    if parts[0] == self.student_id and len(parts) >= 8:
+                        profile_found = True
+                        
+                        # Create data for tabulate
+                        fields = ["Id", "Name", "Level", "Section", "Roll No", "Gender", "Phone No", "Address"]
+                        values = parts[:8]
+                        table_data = [[field, value] for field, value in zip(fields, values)]
+                        
+                        # Display using tabulate
+                        print(tabulate(table_data, headers=["Field", "Value"], tablefmt="fancy_grid"))
+                        break
+            
+            if not profile_found:
+                print("\033[31mProfile not found. Please update your profile first.\033[0m")
+            
+            input("\nPress Enter to continue...")
+            
+        except Exception as e:
+            print(f"\033[31mError! {e}\033[0m")
+            self.timer(2)
+
+    def view_marks(self):
+        try:
+            self.check_file_exist(self.gradefile)
+            marks_found = False
+            
+            self.clscr()
+            print("\nYour Academic Performance")
+            print("=" * 50)
+            
+            with open(self.gradefile, 'r') as file:
+                for line in file:
+                    parts = line.strip().split(":")
+                    if parts[0] == self.student_id and len(parts) >= 6:
+                        marks_found = True
+                        
+                        # Get marks from line and convert to int
+                        marks = [int(parts[i]) for i in range(1, 6)]
+                        
+                        # Create subject marks table data
+                        subjects = [f"Subject {i}" for i in range(1, 6)]
+                        marks_with_total = [f"{mark}/100" for mark in marks]
+                        table_data = [[subject, mark] for subject, mark in zip(subjects, marks_with_total)]
+                        
+                        # Display marks using tabulate
+                        print("\nSubject-wise Marks:")
+                        print(tabulate(table_data, headers=["Subject", "Marks"], tablefmt="fancy_grid"))
+                        
+                        # Calculate total and percentage
+                        total = sum(marks)
+                        percentage = total / 5
+                        
+                        # Determine grade
+                        if percentage >= 90:
+                            grade = "A+"
+                        elif percentage >= 80:
+                            grade = "A"
+                        elif percentage >= 70:
+                            grade = "B+"
+                        elif percentage >= 60:
+                            grade = "B"
+                        elif percentage >= 50:
+                            grade = "C"
+                        else:
+                            grade = "F"
+                        
+                        # Create summary table data
+                        summary_data = [
+                            ["Total Marks", f"{total}/500"],
+                            ["Percentage", f"{percentage:.2f}%"],
+                            ["Grade", grade]
+                        ]
+                        
+                        # Display summary using tabulate
+                        print("\nSummary:")
+                        print(tabulate(summary_data, headers=["Parameter", "Value"], tablefmt="fancy_grid"))
+                        break
+            
+            if not marks_found:
+                print("\033[31mNo grade records found.\033[0m")
+            
+            input("\nPress Enter to continue...")
+            
+        except Exception as e:
+            print(f"\033[31mError! {e}\033[0m")
+            self.timer(2)
+
+    def view_eca(self):
+        try:
+            self.check_file_exist(self.ecafile)
+            eca_found = False
+            
+            self.clscr()
+            print("\nYour Extra-Curricular Activities")
+            print("=" * 50)
+            
+            with open(self.ecafile, 'r') as file:
+                for line in file:
+                    parts = line.strip().split(":")
+                    if parts[0] == self.student_id and len(parts) > 1:
+                        eca_found = True
+                        # Get activities excluding id
+                        activities = parts[1:]
+                        
+                        # Filter out empty activities
+                        activities = [activity for activity in activities if activity.strip()]
+                        
+                        if activities:
+                            # Create table data for activities
+                            table_data = [[i, activity] for i, activity in enumerate(activities, 1)]
+                            
+                            # Display using tabulate
+                            print(tabulate(table_data, headers=["No.", "Activity"], tablefmt="fancy_grid"))
+                        else:
+                            print("\033[31mNo activities found in your ECA record.\033[0m")
+                        break
+            
+            if not eca_found:
+                print("\033[31mNo ECA records found.\033[0m")
+            
+            input("\nPress Enter to continue...")
+            
+        except Exception as e:
+            print(f"\033[31mError! {e}\033[0m")
+            self.timer(2)
 
     def student_sign_up(self, passfile):
+        try:
+            with open(passfile, 'r') as file:
+                pass
+        except FileNotFoundError:
+            with open(passfile, 'w') as file:
+                pass
         while True:
             try:
                 self.username = input('Username: ')
                 if len(self.username) < 3:
                     raise Exception ("\033[31mError! Username must be at least more than 2 character\033[0m")
+                
+                # Check if username already exists
+                if not self.empty_content(passfile) and self.check_username_exist(passfile):
+                    raise Exception("\033[31mError! Username already exists. Please choose another username.\033[0m")
+                    
                 self.password = input('Password: ')
                 if len(self.password) < 5: 
                     raise Exception ("\033[31mError! Password must be more than 4 character.\033[0m")
@@ -584,47 +834,62 @@ class Student(StudentManagementSystem):
                 self.verify = id
                 if not self.check_verification():
                     raise Exception ("\033[31mError! Verification id didn't match.\033[0m")
+                
+                # Get student ID from verification record
+                student_id = None
+                with open(self.cfm_student, 'r') as vfile:
+                    for line in vfile:
+                        v_id, v_name, v_class, v_section, v_verify = line.strip().split(":")
+                        if v_verify == self.verify:
+                            student_id = v_id
+                            break
+                
+                if not student_id:
+                    raise Exception("\033[31mError! Unable to retrieve student ID.\033[0m")
+                    
                 with open(passfile, 'a') as file:
-                    file.write(f"{self.username}:{self.password}")
+                    file.write(f"{student_id}:{self.username}:{self.password}\n")
                     print("✅ Sign up succesfull.")
                     self.timer(2)
+
                 return
             
             except PermissionError: 
                 print(f'Error! Permission denied to write in file')
+                choice = input("Try again? (Y/N): ")
+                if choice.lower() != 'y':
+                    self.goback = True
+                    return
             except Exception as e:
                 print(f"{e}")
+                choice = input("Try again? (Y/N): ")
+                if choice.lower() != 'y':
+                    self.goback = True
+                    return
 
-    def update_profile(self):
-        pass
-    def view_profile(self):
-        pass
-    def view_marks(self):
-        pass
-    def view_eca(self):
-        pass
     def student_login(self):
         self.login_ui(2)
         while True:
             choice = input('Your choice: ')
             if choice == '1':
                 self.sign_in(self.studentfile)
+                # Store the student ID permanently after successful login
+                if not self.goback:
+                    self.student_id = self.verify
                 return
             elif choice == '2':
                 self.student_sign_up(self.studentfile)
+                return
             elif choice == '0':
                 self.goback = True
                 return
             else:
                 print('Invalid Choice!')
-
-    def mainpage(self):
+    
+    def student_options(self):
         while True:
-            self.student_login()
-            if self.goback:
-                return
             self.student_ui()
-            choice = input('Your chioce: ')
+            choice = input('Your choice: ')
             if choice == '1':
                 self.update_profile()
             elif choice == '2':
@@ -634,9 +899,19 @@ class Student(StudentManagementSystem):
             elif choice == '4':
                 self.view_eca()
             elif choice == '0':
+                self.goback = True
                 return 
             else:
                 print('Invalid Choice!')
+            
+    def mainpage(self):
+        while True:
+            self.student_login()
+            if self.goback:
+                return
+            self.student_options()
+            if self.goback:
+                return
 
 studentmanagementsystem = StudentManagementSystem()
 while True:
