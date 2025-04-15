@@ -213,8 +213,6 @@ class Admin(StudentManagementSystem):
         self.verify = id
         if not self.id_exist(self.userfile):
             raise Exception("Id not found in Database.")
-        if self.id_exist(self.personalfile):
-            raise Exception("Id's data is already up to date.")
 
         details = {'Name': None, 'Level': None, 'Section': None, 'Roll no': None, 'Gender': None, 'Phone No: ': None, 'Address': None}
         for i in details.keys():
