@@ -29,9 +29,9 @@ class StudentManagementSystem:
         print('|                   Student Management System                 |')
         print(" =============================================================")
         print("|                                                             |")
-        print("|                   Press '1' for Admin login                 |")
+        print("|                   Enter '1' for Admin login                 |")
         print("|                                                             |")
-        print("|                  Press '2' for Student login                |")
+        print("|                  Enter '2' for Student login                |")
         print("|                                                             |")
         print(" =============================================================")
     
@@ -44,11 +44,11 @@ class StudentManagementSystem:
             print("|                      Student Login Page                     |")
         print(" =============================================================")
         print("|                                                             |")    
-        print("|                      Press '1' to Sign In                   |")
+        print("|                      Enter '1' to Sign In                   |")
         print("|                                                             |")
-        print("|                      Press '2' to Sign Up                   |")
+        print("|                      Enter '2' to Sign Up                   |")
         print("|                                                             |")
-        print("|                      Press '0' to Go Back                   |")
+        print("|                      Enter '0' to Go Back                   |")
         print("|                                                             |")
         print(" =============================================================")
     
@@ -112,13 +112,13 @@ class StudentManagementSystem:
                 if username == self.username:
                     return True
                 
-    def id_exist(self):
-        with open(self.userfile, 'r') as file:
-            for line in file:
-                chk_verify, chk_name, chk_clss, chk_section = line.strip().split(":")
-                if int(chk_verify) == self.verify:
+    def id_exist(self, passfile):
+        with open(passfile, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                if self.verify == int(line.split(':')[0]):
                     return True
-            return False    
+        return False    
     
     def check_verification(self):
         with open(self.cfm_student, 'r') as file:
@@ -136,52 +136,7 @@ class StudentManagementSystem:
         except FileNotFoundError:
             with open(passfile, 'w') as file:
                 pass
-    
-    def personal_data_input(self):
-        id = int(input('Student Id: '))
-        self.verfiy = id
-        if not self.id_exist():
-            raise Exception("Id not found in Database.")
-        details = {'Name': None, 'Level': None, 'Section': None, 'Roll no': None, 'Gender': None, 'Phone No: ': None, 'Address': None}
-        for i in details.keys():
-            if i == 'Gender':
-                self.gender_selector_ui()
-                choice = input('Your choice: ')
-                detail = self.gender_selector(choice)
-            else:
-                detail = input(f'{i}: ')
-            details[i] = detail
-        return id, list(details.values())
-    
-    def marks_data_input(self):
-        id = int(input("Student Id: "))
-        self.verfiy = id
-        if not self.id_exist():
-            raise Exception("Id not found in Database.")
-        marks = []
-        for i in range(1, 6):
-            mark = int(input(f'subject {i}: '))
-            if not 0 <= mark <= 100: 
-                raise Exception("Please enter valid Marks")
-            marks.append(mark)
-        return id, marks
-    
-    def eca_data_input(self):
-        id = int(input("Student Id: "))
-        self.verfiy = id
-        if not self.id_exist():
-            raise Exception("Id not found in database.")
-        sports = []
-        print('press 0 after completing adding ECA')
-        i = 1
-        while True:
-            sport = input(f'Sport {i}')
-            if sport == '0':
-                break
-            sports.append(sport)
-            i +=1
-        return id, sports
-    
+
     def gender_selector(self, choice):
         if choice == '1':
             return 'Male'
@@ -202,16 +157,129 @@ class Admin(StudentManagementSystem):
         print("|                          Admin page                         |")
         print(" =============================================================")
         print("|                                                             |")
-        print("|                      Press '1' to add student               |")
+        print("|                      Enter '1' to Add Student               |")
         print("|                                                             |")
-        print("|                      Press '2' to Sign Up                   |")
+        print("|                      Enter '2' to Update Record             |")
         print("|                                                             |")
-        print("|                      Press '0' to Go Back                   |")
+        print("|                      Enter '3' to Modify Record             |")
+        print("|                                                             |")
+        print("|                      Enter '4' to Delete Record             |")
+        print("|                                                             |")
+        print("|                      Enter '0' to Go Back                   |")
         print("|                                                             |")
         print(" =============================================================")
 
     def choices_ui(self):
-        pass
+        self.clscr()
+        print(" -------------------------------------------")
+        print("|                 RECORDS                   |")
+        print("|                                           |")
+        print("|        Enter '1' for personal info        |")
+        print("|                                           |")
+        print("|        Enter '2' for Grades               |")
+        print("|                                           |")
+        print("|        Enter '3' for ECA                  |")
+        print("|                                           |")
+        print("|        Enter '0' to go back               |")
+        print(" -------------------------------------------")
+
+    def personal_data_input(self):
+        id = int(input('Student Id: '))
+        self.verify = id
+        if not self.id_exist(self.userfile):
+            raise Exception("Id not found in Database.")
+        if self.id_exist(self.personalfile):
+            raise Exception("Id's data is already up to date.")
+
+        details = {'Name': None, 'Level': None, 'Section': None, 'Roll no': None, 'Gender': None, 'Phone No: ': None, 'Address': None}
+        for i in details.keys():
+            if i == 'Gender':
+                self.gender_selector_ui()
+                choice = input('Your choice: ')
+                detail = self.gender_selector(choice)
+            else:
+                detail = input(f'{i}: ')
+            details[i] = detail
+        return id, list(details.values())
+    
+    def marks_data_input(self):
+        id = int(input("Student Id: "))
+        self.verify = id
+        if not self.id_exist(self.userfile):
+            raise Exception("Id not found in Database.")
+        marks = []
+        for i in range(1, 6):
+            mark = int(input(f'subject {i}: '))
+            if not 0 <= mark <= 100: 
+                raise Exception("Please enter valid Marks")
+            marks.append(mark)
+        return id, marks
+    
+    def eca_data_input(self):
+        id = int(input("Student Id: "))
+        self.verify = id
+        if not self.id_exist(self.userfile):
+            raise Exception("Id not found in database.")
+        sports = []
+        print('press 0 after completing adding ECA')
+        i = 1
+        while True:
+            sport = input(f'Sport {i}')
+            if sport == '0':
+                break
+            sports.append(sport)
+            i += 1
+        return id, sports
+    
+    def write_updated_data(self, passfile, id, datas):
+        with open(passfile, 'a') as file:
+            file.write(f'{id}:' + ':'.join(map(str, datas)) + '\n')
+
+    def write_modified_data(self, passfile, id, datas):
+        with open(passfile, 'r+') as file:
+            lines = file.readlines()
+            file.seek(0)
+            for i, line in enumerate(lines):
+                searched_id = line.split(":")[0]
+                if id == int(searched_id):
+                    lines[i] = f'{id}:' + ':'.join(map(str, datas)) + '\n'
+                    update_success = True
+                    break
+            if update_success:
+                file.seek(0)    
+                file.writelines(lines)
+            else:
+                raise Exception('Failed in Modifying Personal information.')
+
+    def delete_data(self, passfile):
+        self.check_file_exist(passfile)
+        while True:
+            try:
+                id = int(input('Student Id: '))
+                self.verify = id
+                if not self.id_exist(self.userfile):
+                    raise Exception("Id not found in Database.")
+                with open(passfile, 'r+')as file:
+                    lines = file.readlines()
+                    file.seek(0)
+                    file.truncate()
+                    for line in lines:
+                        if id != int(line.split(':')[0]):
+                            file.write(line)
+
+                print('✅ Successfully deleted data.')
+                choice = input('Do you want to continue deleting(Y/N): ')
+                if choice.lower() == 'y':
+                    continue
+                elif choice.lower() == 'n':
+                    return
+                else:
+                    raise Exception('Invalid Choice.')
+        
+            except ValueError:
+                print('\033[31mError! Please enter only number.\033[0m')
+            except Exception as e:
+                print(f'\033[31mError! {e}\033[0m]')
 
     def admin_sign_up(self, passfile):
         while True:
@@ -257,7 +325,6 @@ class Admin(StudentManagementSystem):
                 self.goback = True
                 return
             
-
     def add_student(self):
         self.check_file_exist(self.userfile)
         while True:
@@ -269,7 +336,7 @@ class Admin(StudentManagementSystem):
                 verification_id = input('Verification Id: ')
                 self.verify = id
                 if not self.empty_content(self.userfile):
-                    if self.id_exist():
+                    if self.id_exist(self.userfile):
                         raise Exception (f"Id {self.verify} is already used.")
                 with open(self.cfm_student, 'a') as file, open(self.userfile, 'a') as file2:
                     file.write(f"{id}:{name}:{clss}:{section}:{verification_id}\n")
@@ -293,10 +360,15 @@ class Admin(StudentManagementSystem):
         while True:
             try:
                 id, details_list = self.personal_data_input()
-                
-                with open(self.personalfile, 'a') as file:
-                    file.write(f'{id}:' + ':'.join(map(str, details_list)) + '\n')
-
+                self.write_updated_data(self.personalfile, id, details_list)
+                choice = input('Do you want to continue Updating(Y/N): ')
+                if choice.lower() == 'y':
+                    continue
+                elif choice.lower() == 'n':
+                    return
+                else:
+                    raise Exception('Invalid Choice.')
+            
             except ValueError:
                 print('\033[31mError! You can only enter number.\033[0m')
             except PermissionError:
@@ -309,8 +381,7 @@ class Admin(StudentManagementSystem):
         while True:
             try: 
                 id, marks = self.marks_data_input()
-                with open(self.gradefile, 'a') as file:
-                    file.write(f'{id}:' + ':'.join(map(str, marks)) + '\n')
+                self.write_updated_data(self.gradefile, id, marks)
 
                 print('✅ Successfully Added student.')
                 choice = input('Do you want to continue adding(Y/N): ')
@@ -319,7 +390,7 @@ class Admin(StudentManagementSystem):
                 elif choice.lower() == 'n':
                     break
                 else:
-                    print('\033[31mInvalid Choice\033[0m')
+                    print('Invalid Choice')
 
             except PermissionError:
                 print(f"\033[31mError! Permission denied to update marks\033[0m")
@@ -332,15 +403,14 @@ class Admin(StudentManagementSystem):
         self.check_file_exist(self.ecafile)
         while True:
             try: 
-                id, sports = self.eca_data_input
-                with open(self.ecafile, 'a') as file:
-                    file.write(f'{id}:' + ':'.join(map(str, sports)) + '\n')
+                id, sports = self.eca_data_input()
+                self.write_updated_data(self.ecafile, id, sports)
                 print('✅ Successfully Updated ECA record.')
                 choice = input('Do you want to continue updating ECA(Y/N): ')
                 if choice.lower() == 'y':
                     continue
                 elif choice.lower() == 'n':
-                    self.update_marks()
+                    return
                 else:
                     print('\033[31mInvalid Choice\033[0m')
                     
@@ -361,7 +431,7 @@ class Admin(StudentManagementSystem):
         elif choice == '3':
             self.update_eca()
         elif choice == '0':
-            self.goback = True
+            return 
         else:
             print('\033[31mInvalid  Choice!\033[0m')
     
@@ -370,22 +440,16 @@ class Admin(StudentManagementSystem):
         while True:
             try:
                 id, details_list = self.personal_data_input()
-                with open(self.personalfile, 'r+') as file:
-                    lines = file.readlines()
-                    file.seek(0)
-                    for i, line in enumerate(lines):
-                        searched_id = line.split(":")[0]
-                        if id == int(searched_id):
-                            lines[i] = f'{id}:' + ':'.join(map(str, details_list)) + '\n'
-                            update_success = True
-                            break
-                    if update_success:
-                        file.seek(0)    
-                        file.writelines(lines)
-                        print('✅ Successfully Modified Personal information.')
-                    else:
-                        raise Exception('Failed in Modifying Personal information.')
-
+                self.write_modified_data(self.personalfile, id, details_list)
+                print('✅ Successfully Personal information Modified.')
+                choice = input('Do you want to continue modifying marks(Y/N): ')
+                if choice.lower() == 'y':
+                    continue
+                elif choice.lower() == 'n':
+                    return
+                else:
+                    raise Exception("Invalid Choice")
+                
             except ValueError:
                 print('\033[31mError! You can only enter number.\033[0m')
             except PermissionError:
@@ -394,9 +458,48 @@ class Admin(StudentManagementSystem):
                 print(f'\033[31mError! {e}\033[0m')
 
     def modify_marks(self):
-        pass
+        self.check_file_exist(self.personalfile)
+        while True:
+            try:
+                id, marks = self.marks_data_input()
+                self.write_modified_data(self.personalfile, id, marks)
+                print('✅ Successfully Grade Modified.')
+                choice = input('Do you want to continue modifying marks(Y/N): ')
+                if choice.lower() == 'y':
+                    continue
+                elif choice.lower() == 'n':
+                    return 
+                else:
+                    raise Exception('Invalid Choice')
+                
+            except ValueError:
+                print('\033[31mError! You can only enter number.\033[0m')
+            except PermissionError:
+                print('\033[31mError! Permission denied to write in this file.\033[0m')
+            except Exception as e:
+                print(f'\033[31Error! {e}\033[0m')
+
     def modify_eca(self):
-        pass
+        self.check_file_exist(self.ecafile)
+        while True:
+            try: 
+                id, sports = self.eca_data_input()
+                self.write_modified_data(self.ecafile, id, sports)
+                print('✅ Successfully ECA Modified.')
+                choice = ('Do you want to continue Modifying ECA(Y/N): ')
+                if choice.lower() == 'y':
+                    continue
+                elif choice.lower() == 'n':
+                    return
+                else:
+                    raise Exception('Invalid Choice.')
+        
+            except ValueError:
+                print('\033[31mError! You can only enter number.\033[0m')
+            except PermissionError:
+                print('\033[31mError! Permission denied to write in this file.\033[0m')
+            except Exception as e:
+                print(f'\033[31Error! {e}\033[0m')
 
     def modify_record(self):
         self.choices_ui()
@@ -407,17 +510,36 @@ class Admin(StudentManagementSystem):
             self.modify_marks()
         elif choice == '3':
             self.modify_eca()
+        elif choice == '0':
+            return
         else:
             print('\033[31mInvalid Choice!\033[0m')
 
-    def delete_record(self):
-        pass
+    def delete_personal(self):
+        self.delete_data(self.personalfile)
 
-    def mainpage(self):
+    def delete_marks(self):
+        self.delete_data(self.gradefile)
+
+    def delete_eca(self):
+        self.delete_data(self.ecafile)
+
+    def delete_record(self):
+        self.choices_ui()
+        choice = input('Your Choice: ')
+        if choice == '1':
+            self.delete_personal()
+        elif choice == '2':
+            self.delete_marks()
+        elif choice == '3':
+            self.delete_eca()
+        elif choice == '0':
+            return
+        else:
+            print('\033[31mInvalid Choice!\033[0m')
+
+    def admin_options(self):
         while True:
-            self.admin_login()
-            if self.goback:
-                return
             self.admin_ui()
             choice = input('Your choice: ')
             if choice == '1':
@@ -431,7 +553,14 @@ class Admin(StudentManagementSystem):
             elif choice == '0':
                 return
             else:
-                print('\033[31mInvalid choice!\033[0m')
+                print('\033[31mInvalid Choice.\033[0m')
+
+    def mainpage(self):
+        while True:
+            self.admin_login()
+            if self.goback:
+                return
+            self.admin_options()
 
 class Student(StudentManagementSystem):
     def __init__(self):
