@@ -350,6 +350,7 @@ class Admin(StudentManagementSystem):
             
     def add_student(self):
         self.check_file_exist(self.userfile)
+        self.check_file_exist(self.cfm_student)
         while True:
             try:
                 name = input('Student Name: ')
@@ -367,16 +368,21 @@ class Admin(StudentManagementSystem):
                     print('✅ Successfully Added student.')
                 choice = input('Do you want to continue adding student(Y/N): ')
                 if choice.lower() == 'y':
-                    self.add_student()
+                    continue
                 elif choice.lower() == 'n':
-                    self.mainpage()
+                    return
                 else:
-                    print('\033[31mInvalid input!\033[0m')
+                    print('\033[31mInvalid input! Returning to main menu.\033[0m')
+                    self.timer(2)
+                    return
 
             except ValueError:
                 print('\033[31mError! only digits are allowed to enter in level and Id\033[0m')
             except Exception as e:
                 print(f'\033[31mError! {e}\33[0m')
+                choice = input('Do you want to try again(Y/N): ')
+                if choice.lower() != 'y':
+                    return
 
     def update_personal(self):
         self.check_file_exist(self.personalfile)
@@ -388,6 +394,7 @@ class Admin(StudentManagementSystem):
                 if choice.lower() == 'y':
                     continue
                 elif choice.lower() == 'n':
+                    self.goback = True
                     return
                 else:
                     raise Exception('Invalid Choice.')
@@ -406,14 +413,14 @@ class Admin(StudentManagementSystem):
                 id, marks = self.marks_data_input()
                 self.write_updated_data(self.gradefile, id, marks)
 
-                print('✅ Successfully Added student.')
-                choice = input('Do you want to continue adding(Y/N): ')
+                print('✅ Successfully Added marks.')
+                choice = input('Do you want to continue adding marks(Y/N): ')
                 if choice.lower() == 'y':
                     continue
                 elif choice.lower() == 'n':
-                    break
+                    return
                 else:
-                    print('Invalid Choice')
+                    print('\033[31mInvalid Choice\033[0m')
 
             except PermissionError:
                 print(f"\033[31mError! Permission denied to update marks\033[0m")
@@ -433,6 +440,7 @@ class Admin(StudentManagementSystem):
                 if choice.lower() == 'y':
                     continue
                 elif choice.lower() == 'n':
+                    self.goback = True
                     return
                 else:
                     print('\033[31mInvalid Choice\033[0m')
@@ -445,18 +453,25 @@ class Admin(StudentManagementSystem):
                 print(f"\033[31mError! {e}\033[0m")
     
     def update_record(self):
-        self.choices_ui()
-        choice = input('Your choice: ')
-        if choice == '1':
-            self.update_personal()
-        elif choice == '2':
-            self.update_marks()
-        elif choice == '3':
-            self.update_eca()
-        elif choice == '0':
-            return 
-        else:
-            print('\033[31mInvalid  Choice!\033[0m')
+        while True:
+            self.choices_ui()
+            choice = input('Your choice: ')
+            if choice == '1':
+                self.update_personal()
+                if self.goback:
+                    return
+            elif choice == '2':
+                self.update_marks()
+                if self.goback: 
+                    return
+            elif choice == '3':
+                self.update_eca()
+                if self.goback:
+                    return
+            elif choice == '0':
+                return 
+            else:
+                print('\033[31mInvalid  Choice!\033[0m')
     
     def modify_personal(self):
         self.check_file_exist(self.personalfile)
@@ -481,11 +496,11 @@ class Admin(StudentManagementSystem):
                 print(f'\033[31mError! {e}\033[0m')
 
     def modify_marks(self):
-        self.check_file_exist(self.personalfile)
+        self.check_file_exist(self.gradefile)
         while True:
             try:
                 id, marks = self.marks_data_input()
-                self.write_modified_data(self.personalfile, id, marks)
+                self.write_modified_data(self.gradefile, id, marks)
                 print('✅ Successfully Grade Modified.')
                 choice = input('Do you want to continue modifying marks(Y/N): ')
                 if choice.lower() == 'y':
@@ -500,7 +515,7 @@ class Admin(StudentManagementSystem):
             except PermissionError:
                 print('\033[31mError! Permission denied to write in this file.\033[0m')
             except Exception as e:
-                print(f'\033[31Error! {e}\033[0m')
+                print(f'\033[31mError! {e}\033[0m')
 
     def modify_eca(self):
         self.check_file_exist(self.ecafile)
@@ -509,7 +524,7 @@ class Admin(StudentManagementSystem):
                 id, sports = self.eca_data_input()
                 self.write_modified_data(self.ecafile, id, sports)
                 print('✅ Successfully ECA Modified.')
-                choice = ('Do you want to continue Modifying ECA(Y/N): ')
+                choice = input('Do you want to continue Modifying ECA(Y/N): ')
                 if choice.lower() == 'y':
                     continue
                 elif choice.lower() == 'n':
@@ -522,7 +537,7 @@ class Admin(StudentManagementSystem):
             except PermissionError:
                 print('\033[31mError! Permission denied to write in this file.\033[0m')
             except Exception as e:
-                print(f'\033[31Error! {e}\033[0m')
+                print(f'\033[31mError! {e}\033[0m')
 
     def modify_record(self):
         self.choices_ui()
@@ -642,7 +657,8 @@ class Student(StudentManagementSystem):
                 
                 with open(self.personalfile, 'w') as file:
                     for line in lines:
-                        if line.split(':')[0] != self.student_id:
+                        parts = line.strip().split(':')
+                        if parts[0] != self.student_id:
                             file.write(line)
                         else:
                             file.write(f"{self.student_id}:" + ':'.join(map(str, details.values())) + '\n')
@@ -680,16 +696,18 @@ class Student(StudentManagementSystem):
             with open(self.personalfile, 'r') as file:
                 for line in file:
                     parts = line.strip().split(":")
-                    if parts[0] == self.student_id and len(parts) >= 8:
+                    if parts[0] == self.student_id:
                         profile_found = True
-                        
-                        # Create data for tabulate
-                        fields = ["Id", "Name", "Level", "Section", "Roll No", "Gender", "Phone No", "Address"]
-                        values = parts[:8]
-                        table_data = [[field, value] for field, value in zip(fields, values)]
-                        
-                        # Display using tabulate
-                        print(tabulate(table_data, headers=["Field", "Value"], tablefmt="fancy_grid"))
+                        if len(parts) >= 8:  # Ensure we have enough fields
+                            # Create data for tabulate
+                            fields = ["Id", "Name", "Level", "Section", "Roll No", "Gender", "Phone No", "Address"]
+                            values = parts[:8]
+                            table_data = [[field, value] for field, value in zip(fields, values)]
+                            
+                            # Display using tabulate
+                            print(tabulate(table_data, headers=["Field", "Value"], tablefmt="fancy_grid"))
+                        else:
+                            print("\033[31mProfile data is incomplete. Please update your profile again.\033[0m")
                         break
             
             if not profile_found:
@@ -697,6 +715,9 @@ class Student(StudentManagementSystem):
             
             input("\nPress Enter to continue...")
             
+        except FileNotFoundError:
+            print("\033[31mProfile file not found. Please update your profile first.\033[0m")
+            self.timer(2)
         except Exception as e:
             print(f"\033[31mError! {e}\033[0m")
             self.timer(2)
@@ -872,7 +893,7 @@ class Student(StudentManagementSystem):
             if choice == '1':
                 self.sign_in(self.studentfile)
                 # Store the student ID permanently after successful login
-                if not self.goback:
+                if not self.goback and self.verify:
                     self.student_id = self.verify
                 return
             elif choice == '2':
@@ -882,9 +903,15 @@ class Student(StudentManagementSystem):
                 self.goback = True
                 return
             else:
-                print('Invalid Choice!')
+                print('\033[31mInvalid Choice!\033[0m')
     
     def student_options(self):
+        # Ensure student_id is set before proceeding
+        if not self.student_id:
+            print("\033[31mError: Student ID not initialized. Please login again.\033[0m")
+            self.timer(2)
+            return
+            
         while True:
             self.student_ui()
             choice = input('Your choice: ')
@@ -900,7 +927,7 @@ class Student(StudentManagementSystem):
                 self.goback = True
                 return 
             else:
-                print('Invalid Choice!')
+                print('\033[31mInvalid Choice!\033[0m')
             
     def mainpage(self):
         while True:
